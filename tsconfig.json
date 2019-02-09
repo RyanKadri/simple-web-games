@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+      "target": "es2018",
+      "module": "es2015",
+      "lib": ["dom", "es2018", "esnext.array"],
+  
+      "skipLibCheck": true,
+      "strict": true,
+      "noImplicitAny": true,
+      "alwaysStrict": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "noImplicitReturns": true,
+      "noFallthroughCasesInSwitch": true,
+  
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "sourceMap": true,
+      "importHelpers": true,
+  
+      "esModuleInterop": true,
+      "jsx": "react",
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "downlevelIteration": true
+    },
+    "exclude": [
+        "../node_modules",
+        "**/*.spec.ts",
+        "**/*.exp.ts"
+    ]
+  }
+  
