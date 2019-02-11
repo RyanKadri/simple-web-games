@@ -49,7 +49,7 @@ def precalcMoves(board, currentPlayer = OPPONENT):
             best = space
             bestScore = score
         board[space[0]][space[1]] = BLANK
-    nextMoveDict[hash] = (best, bestScore)
+    nextMoveDict[hash] = (best, totalScore)
     return totalScore
     
 def hashBoard(board):
@@ -60,10 +60,7 @@ def hashBoard(board):
             hash += col * 3 ** ind
     return hash
 
-def calcNextMove(board, currentPlayer = ME):
-    return idealNextMove(board, currentPlayer)
-
-def idealNextMove(board, currentPlayer):
+def calcNextMove(board):
     hash = hashBoard(board)
     move, _ = nextMoveDict.get(hash)
     return { "row": move[0], "column": move[1] }
