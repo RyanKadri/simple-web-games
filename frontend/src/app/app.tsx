@@ -12,7 +12,8 @@ const styles = (theme: Theme) => createStyles({
         display: 'flex',
         justifyContent: 'center',
         alignItems: "center",
-        flexDirection: "column"
+        flexDirection: "column",
+        flexGrow: 1
     }
 })
 const _App = ({ classes }: Props) => (

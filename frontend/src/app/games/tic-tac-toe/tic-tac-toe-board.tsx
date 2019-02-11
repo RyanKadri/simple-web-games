@@ -8,7 +8,8 @@ const styles = createStyles({
         display: "grid",
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
-        width: '50vh'
+        width: '50vh',
+        flexGrow: 1
     }
 })
 

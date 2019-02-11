@@ -1,4 +1,4 @@
-import { createStyles, withStyles, WithStyles, Theme, Typography, Button, Switch, FormControlLabel } from "@material-ui/core";
+import { createStyles, withStyles, WithStyles, Theme, Typography, Button, Switch, FormControlLabel, CircularProgress } from "@material-ui/core";
 import React, { useState, SyntheticEvent, useEffect } from "react";
 import { TicTacToeBoard } from "./tic-tac-toe-board";
 import { PlayerOwner, GameStatus, GameState } from "./types/types";
@@ -10,6 +10,9 @@ const styles = (theme: Theme) => createStyles({
     },
     resetButton: {
         marginTop: theme.spacing.unit * 2
+    },
+    spinner: {
+        marginLeft: theme.spacing.unit * 2
     }
 });
 
@@ -37,13 +40,10 @@ const _TicTacToeGame = ({ classes }: Props) => {
         const move = { row, column, player: currentPlayer };
         const newBoard = calcNewBoard(gameState.board, move);
         const outcome = checkOutcome(newBoard);
-        const waiting = outcome.status === GameStatus.ONGOING 
-                            && aiOpponent 
-                            && currentPlayer === PlayerOwner.O
         setGameState({ 
             ...gameState,
             ...outcome,
-            waiting,
+            waiting: false,
             board: newBoard,
             currentPlayer: (gameState.currentPlayer + 1) % 2,
         });
@@ -62,49 +62,60 @@ const _TicTacToeGame = ({ classes }: Props) => {
                 && currentPlayer === PlayerOwner.O 
                 && gameState.status === GameStatus.ONGOING
         ) {
+            setGameState((oldState) => ({
+                ...oldState,
+                waiting: true
+            }))
             fetch("/api/nextMove", { 
                 method: "POST",
                 body: JSON.stringify(gameState.board),
                 headers: {
                     "Content-Type": "application/json"
                 }
-            }).then(res => res.json())
+            })
+            .then(res => res.json())
             .then(nextMove => onSelected(nextMove.column, nextMove.row))
         }
     }, [gameState.currentPlayer, aiOpponent])
 
-
     return (
         <>
-            <Typography variant="h5" className={ classes.header }>Tic Tac Toe </Typography>
+            <Typography variant="h5" className={ classes.header }>Tic Tac Toe</Typography>
             <Typography variant="h6" className={ classes.header }>{ 
                 gameState.status === GameStatus.WINNER 
                     ? `Congrats ${playerStr(gameState.winner!)}, you win!`
                     : gameState.status === GameStatus.TIE
                         ? `Hmm. Tie game. Guess you both lose :(`
                         : `Current Player: ${ playerStr(currentPlayer) }`
-            }</Typography>
+                }
+                { gameState.waiting
+                    ? <CircularProgress className={classes.spinner} style={{ height: 24, width: 24 }} color="secondary" /> 
+                    : null 
+                }
+            </Typography>
             <TicTacToeBoard 
                 boardState={ gameState.board } 
                 gameState={ gameState.status }
                 onSquareSelected={ onSelected }
             />
-            <FormControlLabel 
-                label="Play against computer"
-                control={
-                    <Switch 
-                        checked={ aiOpponent }
-                        onChange={ addAiOpponent }
-                        color="primary" />
+            <div>
+                <FormControlLabel 
+                    label="Play against computer"
+                    control={
+                        <Switch 
+                            checked={ aiOpponent }
+                            onChange={ addAiOpponent }
+                            color="primary" />
+                    }
+                />
+                {
+                    cleanGame ? null :
+                    <Button variant="contained" color="secondary" className={ classes.resetButton }
+                        onClick={ onReset }>
+                        Reset
+                    </Button>
                 }
-            />
-            {
-                cleanGame ? null :
-                <Button variant="contained" color="secondary" className={ classes.resetButton }
-                    onClick={ onReset }>
-                    Reset
-                </Button>
-            }
+            </div>
         </>
     )
 }

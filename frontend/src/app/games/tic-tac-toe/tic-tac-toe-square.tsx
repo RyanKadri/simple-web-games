@@ -32,7 +32,7 @@ const _TicTacToeSquare = (props: Props) => {
                 ? <XMark { ...props } />
                 : owner === PlayerOwner.O
                     ? <OMark { ...props } />
-                    : <button style={{ visibility: "hidden" }}></button>
+                    : <svg viewBox="0 0 100 100" />
         }</div>
     )
 }

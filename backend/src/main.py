@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from functools import reduce
 
 app = Flask(__name__)
 
@@ -17,35 +18,53 @@ def calcMove():
     nextMove = calcNextMove(board)
     return jsonify(nextMove)
 
-def calcNextMove(board):
-    winMove = checkWinMove(board)
+def calcNextMove(board, currentPlayer = PLAYER_2):
+    winMove = checkWinMove(board, currentPlayer)
     if winMove != None:
         return winMove
-    blockMove = checkBlockMove(board)
+    blockMove = checkBlockMove(board, currentPlayer)
     if blockMove != None:
         return blockMove
     
-    return idealNextMove(board)
+    return idealNextMove(board, currentPlayer)
 
-def idealNextMove(board):
-    for rowNum, row in enumerate(board):
-        for colNum, col in enumerate(row):
-            if col == BLANK:
-                return { "row": rowNum, "column": colNum }
-    return { "row": -1, "column": -1 }
+def idealNextMove(board, currentPlayer):
+    bestScore = -999
+    best = None
+    moves = calcMoves(board, currentPlayer)
+    for move in moves:
+        if move['score'] > bestScore:
+            best = move['move']
+    return { "row": best[0], "column": best[1] }
 
-def checkWinMove(board):
+def calcMoves(board, currentPlayer):
+    free = freeSpaces(board)
+    moves = []
+    for space in free:
+        board[space[0]][space[1]] = currentPlayer
+        outcome = checkOutcome(board, currentPlayer)
+        if outcome == WIN:
+            score = 1
+        elif outcome == TIE:
+            score = 0
+        else:
+            score = -reduce(lambda a, x: a + x["score"], calcMoves(board, otherPlayer(currentPlayer)), 0)
+        moves.append({ "score": score, "move": space })
+        board[space[0]][space[1]] = BLANK
+    return moves
+
+def checkWinMove(board, currentPlayer):
     for row, col in freeSpaces(board):
-        board[row][col] = PLAYER_2
-        if checkOutcome(board) == WIN:
+        board[row][col] = currentPlayer
+        if checkOutcome(board, currentPlayer) == WIN:
             return { "row": row, "column": col }
         board[row][col] = BLANK
     return None
 
-def checkBlockMove(board):
+def checkBlockMove(board, currentPlayer):
     for row, col in freeSpaces(board):
-        board[row][col] = PLAYER_1
-        if checkOutcome(board) == LOSS:
+        board[row][col] = otherPlayer(currentPlayer)
+        if checkOutcome(board, currentPlayer) == LOSS:
             return { "row": row, "column": col }
         board[row][col] = BLANK
     return None
@@ -59,19 +78,21 @@ TRIPLES_TO_CHECK = [
     [(0,0), (1,1), (2,2)],
     [(2,0), (1,1), (0,2)]
 ] + [[(x,y) for x in range(3)] for y in range(3)] + [[(y,x) for x in range(3)] for y in range(3)]
-def checkOutcome(board):
+def checkOutcome(board, currentPlayer):
     for triple in TRIPLES_TO_CHECK:
         outcome = checkTriple(board, triple)
-        if outcome == PLAYER_1:
+        if outcome == otherPlayer(currentPlayer):
             return LOSS
-        elif outcome == PLAYER_2:
+        elif outcome == currentPlayer:
             return WIN
     for row in board:
         for col in row:
             if col == BLANK:
                 return ONGOING
     return TIE
-    
+
+def otherPlayer(currentPlayer):
+    return PLAYER_2 if currentPlayer == PLAYER_1 else PLAYER_1    
 
 def checkTriple(board, triple):
     a,b,c = [board[cell[0]][cell[1]] for cell in triple]
