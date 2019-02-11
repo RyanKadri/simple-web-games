@@ -2,7 +2,8 @@
   "name": "web-games-frontend",
   "private": true,
   "scripts": {
-    "start:frontend": "webpack-dev-server --config-name dev"
+    "start:frontend": "webpack-dev-server --config-name dev",
+    "python:shell": "docker build -t python-backend . && docker run -p 5000:5000 -it python-backend"
   },
   "dependencies": {
     "react": "^16.8.1",

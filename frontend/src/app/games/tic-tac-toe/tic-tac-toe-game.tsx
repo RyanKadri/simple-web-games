@@ -1,11 +1,15 @@
-import { createStyles, withStyles, WithStyles, Theme, Typography } from "@material-ui/core";
-import React, { useState } from "react";
+import { createStyles, withStyles, WithStyles, Theme, Typography, Button, Switch, FormControlLabel } from "@material-ui/core";
+import React, { useState, SyntheticEvent, useEffect } from "react";
 import { TicTacToeBoard } from "./tic-tac-toe-board";
-import { PlayerOwner, BoardState, GameOutcomes, GameState } from "./types/types";
+import { PlayerOwner, GameStatus, GameState } from "./types/types";
+import { checkOutcome, updateBoard as calcNewBoard } from "./rules/rules";
 
-const styles = (_: Theme) => createStyles({
+const styles = (theme: Theme) => createStyles({
     header: {
         flexBasis: "100%",
+    },
+    resetButton: {
+        marginTop: theme.spacing.unit * 2
     }
 });
 
@@ -15,42 +19,92 @@ const initState: GameState = {
         [ PlayerOwner._, PlayerOwner._, PlayerOwner._ ],
         [ PlayerOwner._, PlayerOwner._, PlayerOwner._ ],
     ],
-    outcome: GameOutcomes.ONGOING,
-    currentPlayer: 0
+    status: GameStatus.ONGOING,
+    currentPlayer: 0,
+    waiting: false
 }
 
 const players = [ PlayerOwner.X, PlayerOwner.O ];
 
-const _TicTacToe = ({ classes }: Props) => {
+const _TicTacToeGame = ({ classes }: Props) => {
     
     const [gameState, setGameState] = useState(initState);
+    const [aiOpponent, setAiOpponent] = useState(false);
     const currentPlayer = players[gameState.currentPlayer];
+    const cleanGame = gameState === initState;
 
-    const onSelected = (col: number, row: number) => {
-        const newBoard = calcBoardState(gameState.board, currentPlayer, col, row)
+    const onSelected = (column: number, row: number) => {
+        const move = { row, column, player: currentPlayer };
+        const newBoard = calcNewBoard(gameState.board, move);
+        const outcome = checkOutcome(newBoard);
+        const waiting = outcome.status === GameStatus.ONGOING 
+                            && aiOpponent 
+                            && currentPlayer === PlayerOwner.O
         setGameState({ 
             ...gameState,
-            ...checkOutcome(newBoard),
+            ...outcome,
+            waiting,
             board: newBoard,
             currentPlayer: (gameState.currentPlayer + 1) % 2,
         });
     };
 
+    const onReset = () => {
+        setGameState(initState);
+    }
+
+    const addAiOpponent = (e: SyntheticEvent<HTMLInputElement>) => {
+        setAiOpponent(e.currentTarget.checked)
+    }
+
+    useEffect(() => {
+        if(aiOpponent 
+                && currentPlayer === PlayerOwner.O 
+                && gameState.status === GameStatus.ONGOING
+        ) {
+            fetch("/api/nextMove", { 
+                method: "POST",
+                body: JSON.stringify(gameState.board),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(res => res.json())
+            .then(nextMove => onSelected(nextMove.column, nextMove.row))
+        }
+    }, [gameState.currentPlayer, aiOpponent])
+
+
     return (
         <>
             <Typography variant="h5" className={ classes.header }>Tic Tac Toe </Typography>
             <Typography variant="h6" className={ classes.header }>{ 
-                gameState.outcome === GameOutcomes.WINNER 
+                gameState.status === GameStatus.WINNER 
                     ? `Congrats ${playerStr(gameState.winner!)}, you win!`
-                    : gameState.outcome === GameOutcomes.TIE
+                    : gameState.status === GameStatus.TIE
                         ? `Hmm. Tie game. Guess you both lose :(`
                         : `Current Player: ${ playerStr(currentPlayer) }`
             }</Typography>
             <TicTacToeBoard 
                 boardState={ gameState.board } 
-                gameState={ gameState.outcome }
+                gameState={ gameState.status }
                 onSquareSelected={ onSelected }
             />
+            <FormControlLabel 
+                label="Play against computer"
+                control={
+                    <Switch 
+                        checked={ aiOpponent }
+                        onChange={ addAiOpponent }
+                        color="primary" />
+                }
+            />
+            {
+                cleanGame ? null :
+                <Button variant="contained" color="secondary" className={ classes.resetButton }
+                    onClick={ onReset }>
+                    Reset
+                </Button>
+            }
         </>
     )
 }
@@ -59,51 +113,6 @@ function playerStr(player: PlayerOwner) {
     return player === PlayerOwner.X ? 'X' : 'O'
 }
 
-function calcBoardState(currBoard: BoardState, currentPlayer: PlayerOwner, selectedCol: number, selectedRow: number) {
-    if(currBoard[selectedRow][selectedCol] !== PlayerOwner._) {
-        throw new Error("Invalid move. This square is already occupied");
-    } else {
-        return currBoard.map((row, rowNum) => 
-            row.map((col, colNum) => 
-                rowNum === selectedRow && colNum === selectedCol 
-                    ? currentPlayer
-                    : col
-            )
-        )
-    }
-}
-
-function checkOutcome(board: BoardState): Pick<GameState, 'outcome' | 'winner'> {
-    let winner = undefined;
-    
-    winner = checkWinner(board[0][0], board[1][1], board[2][2])
-        || checkWinner(board[0][2], board[1][1], board[2][0])       
-    let i = 0;
-    while(winner === undefined && i < 3) {
-        winner = checkWinner(board[i][0], board[i][1], board[i][2])
-            || checkWinner(board[0][i], board[1][i], board[2][i]);
-        i ++;
-    }
-    if(winner !== undefined) {
-        return {
-            outcome: GameOutcomes.WINNER,
-            winner
-        }
-    } else if(board.every(row => row.every(col => col !== PlayerOwner._))) {
-        return { outcome: GameOutcomes.TIE }
-    } else {
-        return { outcome: GameOutcomes.ONGOING };
-    }
-}
-
-function checkWinner(a: PlayerOwner, b: PlayerOwner, c: PlayerOwner) {
-    if(a === b && b === c && a !== PlayerOwner._) {
-        return a;
-    } else {
-        return undefined
-    }
-}
-
 interface Props extends WithStyles<typeof styles> {}
 
-export const TicTacToeGame = withStyles(styles)(_TicTacToe);
+export const TicTacToeGame = withStyles(styles)(_TicTacToeGame);

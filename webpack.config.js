@@ -49,7 +49,10 @@ const dev = merge(common, {
         publicPath: `http://localhost:3000/`,
         historyApiFallback: true,
         host: '0.0.0.0',
-        disableHostCheck: true
+        disableHostCheck: true,
+        proxy: {
+            "/api": "http://localhost:5000/"
+        }
     },
     mode: 'development'
 });

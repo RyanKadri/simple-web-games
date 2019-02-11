@@ -4,7 +4,7 @@ export enum PlayerOwner {
     O,
 }
 
-export enum GameOutcomes {
+export enum GameStatus {
     ONGOING,
     WINNER,
     TIE
@@ -14,7 +14,14 @@ export type BoardState = PlayerOwner[][];
 
 export interface GameState {
     board: BoardState;
-    outcome: GameOutcomes;
+    status: GameStatus;
     currentPlayer: number;
     winner?: PlayerOwner;
+    waiting: boolean;
+}
+
+export interface Move {
+    player: PlayerOwner;
+    row: number;
+    column: number;
 }

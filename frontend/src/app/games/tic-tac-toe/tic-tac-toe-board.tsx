@@ -1,6 +1,6 @@
 import React from "react";
 import { withStyles, WithStyles, createStyles } from "@material-ui/core";
-import { BoardState, GameOutcomes } from "./types/types";
+import { BoardState, GameStatus } from "./types/types";
 import { TicTacToeSquare } from "./tic-tac-toe-square";
 
 const styles = createStyles({
@@ -19,7 +19,7 @@ const _TicTacToeBoard = ({ classes, boardState, gameState, onSquareSelected }: P
                 row.map((col, colNum) => (
                     <TicTacToeSquare key={ `${rowNum},${colNum}` }
                                      owner={ col }
-                                     disabled={ gameState !== GameOutcomes.ONGOING }
+                                     disabled={ gameState !== GameStatus.ONGOING }
                                      onSelected={ () => onSquareSelected(colNum, rowNum) } 
                     />
                 ))
@@ -31,7 +31,7 @@ const _TicTacToeBoard = ({ classes, boardState, gameState, onSquareSelected }: P
 interface Props extends WithStyles<typeof styles> {
     onSquareSelected: (col: number, row: number) => void;
     boardState: BoardState;
-    gameState: GameOutcomes;
+    gameState: GameStatus;
 }
 
 export const TicTacToeBoard = withStyles(styles)(_TicTacToeBoard)
