@@ -89,7 +89,7 @@ const _TicTacToeGame = ({ classes }: Props) => {
                         : `Current Player: ${ playerStr(currentPlayer) }`
                 }
                 { gameState.waiting
-                    ? <CircularProgress className={classes.spinner} style={{ height: 24, width: 24 }} color="secondary" /> 
+                    ? <CircularProgress className={classes.spinner} style={{ height: 18, width: 18 }} color="secondary" /> 
                     : null 
                 }
             </Typography>

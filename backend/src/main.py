@@ -3,8 +3,8 @@ from functools import reduce
 
 app = Flask(__name__)
 
-PLAYER_1 = 1
-PLAYER_2 = 2
+ME = 2
+OPPONENT = 1
 BLANK = 0
 
 WIN = 1
@@ -12,62 +12,61 @@ LOSS = 2
 TIE = 3
 ONGOING = 4
 
+nextMoveDict = {}
+
 @app.route("/api/nextMove", methods=["POST"])
 def calcMove():
     board = request.json
     nextMove = calcNextMove(board)
     return jsonify(nextMove)
 
-def calcNextMove(board, currentPlayer = PLAYER_2):
-    winMove = checkWinMove(board, currentPlayer)
-    if winMove != None:
-        return winMove
-    blockMove = checkBlockMove(board, currentPlayer)
-    if blockMove != None:
-        return blockMove
-    
-    return idealNextMove(board, currentPlayer)
+def precalcMoves(board, currentPlayer = OPPONENT):
 
-def idealNextMove(board, currentPlayer):
-    bestScore = -999
+    hash = hashBoard(board)
+    precalcVal = nextMoveDict.get(hash)
+    if precalcVal != None:
+        return precalcVal[1]
+
     best = None
-    moves = calcMoves(board, currentPlayer)
-    for move in moves:
-        if move['score'] > bestScore:
-            best = move['move']
-    return { "row": best[0], "column": best[1] }
-
-def calcMoves(board, currentPlayer):
+    bestScore = None
+    totalScore = 0
+    opponent = otherPlayer(currentPlayer)
     free = freeSpaces(board)
-    moves = []
+
     for space in free:
         board[space[0]][space[1]] = currentPlayer
+
         outcome = checkOutcome(board, currentPlayer)
         if outcome == WIN:
             score = 1
         elif outcome == TIE:
             score = 0
         else:
-            score = -reduce(lambda a, x: a + x["score"], calcMoves(board, otherPlayer(currentPlayer)), 0)
-        moves.append({ "score": score, "move": space })
+            score = -(1/len(free)) * precalcMoves(board, opponent)
+
+        totalScore += score
+        if bestScore == None or score > bestScore:
+            best = space
+            bestScore = score
         board[space[0]][space[1]] = BLANK
-    return moves
+    nextMoveDict[hash] = (best, bestScore)
+    return totalScore
+    
+def hashBoard(board):
+    hash = 0
+    for rowInd, row in enumerate(board):
+        for colInd, col in enumerate(row):
+            ind = 3 * rowInd + colInd
+            hash += col * 3 ** ind
+    return hash
 
-def checkWinMove(board, currentPlayer):
-    for row, col in freeSpaces(board):
-        board[row][col] = currentPlayer
-        if checkOutcome(board, currentPlayer) == WIN:
-            return { "row": row, "column": col }
-        board[row][col] = BLANK
-    return None
+def calcNextMove(board, currentPlayer = ME):
+    return idealNextMove(board, currentPlayer)
 
-def checkBlockMove(board, currentPlayer):
-    for row, col in freeSpaces(board):
-        board[row][col] = otherPlayer(currentPlayer)
-        if checkOutcome(board, currentPlayer) == LOSS:
-            return { "row": row, "column": col }
-        board[row][col] = BLANK
-    return None
+def idealNextMove(board, currentPlayer):
+    hash = hashBoard(board)
+    move, _ = nextMoveDict.get(hash)
+    return { "row": move[0], "column": move[1] }
 
 def freeSpaces(board):
     allSpaces = [(x,y) for x in range(0,3) for y in range(0,3)]
@@ -92,7 +91,7 @@ def checkOutcome(board, currentPlayer):
     return TIE
 
 def otherPlayer(currentPlayer):
-    return PLAYER_2 if currentPlayer == PLAYER_1 else PLAYER_1    
+    return OPPONENT if currentPlayer == ME else ME    
 
 def checkTriple(board, triple):
     a,b,c = [board[cell[0]][cell[1]] for cell in triple]
@@ -103,5 +102,7 @@ def checkTriple(board, triple):
         return BLANK
 
 if __name__ == "__main__":
+    initBoard = [[BLANK, BLANK, BLANK], [BLANK, BLANK, BLANK], [BLANK, BLANK, BLANK]]
+    precalcMoves(initBoard)
     app.run(host="0.0.0.0")
 
