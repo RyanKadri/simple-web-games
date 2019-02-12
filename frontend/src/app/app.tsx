@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { BrowserRouter as Router, Route, Switch, Redirect } from "react-router-dom";
 import React from "react";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import { MuiThemeProvider, Theme, createStyles, WithStyles, withStyles } from "@material-ui/core";
@@ -25,7 +25,7 @@ const _App = ({ classes }: Props) => (
                 <main className={ classes.gameContainer }>
                     <Switch>
                         <Route path="/tic-tac-toe" component={ TicTacToeGame } />
-                        <Route path="/" exact render={() => "Default"} />
+                        <Route path="/" exact render={() => <Redirect to="/tic-tac-toe" />} />
                     </Switch>
                 </main>
             </MuiThemeProvider>
